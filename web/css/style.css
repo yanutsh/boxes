@@ -1,0 +1,19 @@
+.help-block {
+	color: red;
+}
+
+.nonEQ{
+	color: red;
+	font-weight: 700;
+}
+
+.fb{
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+}
+
+.fb__text{
+	line-height: 37px;
+	margin-right: 20px;
+}
