@@ -34,15 +34,62 @@ $(document).ready(function(){
 			return
 		}	
 		
+		// цикл по коробкам
+		messages = ''
 		cheked_els.each(function (index, el) {
 			console.dir('коробка №'+$(el).attr('value')) //.val())
-			// если новый статус - expected - меняем
+			box_id = $(el).attr('value')
+			status_id = $('#box-status').val()
+			message = ''
+			// если новый статус - expected - меняем 
+			if(status_id == 1) {
+				console.log('меняем статус на Expected')				
+				$.get('/box/change-status', {box_id: box_id, status_id: status_id}, function(data){
+					console.log(data);
+				});			
+			}
 			// если новый статус - At warehouse - проверяем weight и совпадение количеств
-			
+			else {
+				console.log('меняем статус на At Warehouse')
+				if($(el).parents('tr').find('td:nth-child(5)').text() == 0) {
+					message += 'Error: Коробка '+box_id+'- определить вес.\n'
+					//return true;
+				}
+
+				console.log('hasClass='+$(el).parents('tr').find('td:nth-child(2) > div').hasClass('nonEQ'))
+				if($(el).parents('tr').find('td:nth-child(2) > div').hasClass ('nonEQ')) {
+					message += 'Error: Коробка '+box_id+'- не совпадают количества.\n'
+					//return true;
+				}
+
+				console.log(message.length)
+				if(message.length == 0 )				
+					$.get('/box/change-status', {box_id: box_id, status_id: status_id}, function(data){
+						console.log(data);
+					});	
+
+			}
+			messages += message
 		})	
+		if(messages.length > 0) alert(messages)
+
         //var keys = $('#grid').yiiGridView('getSelectedRows');
         //window.location.href='<?php echo Url::to(['mycontroller/bulk']); ?>&action='+a+'&ids='+keys.join();
     })
 
+    $(document).on('click', 'button[type="reset"]', function(e){
+    	$('#boxSearch input').attr('value','')
+    	$('#boxsearch-status_id option:selected').removeAttr('selected');
+    	$('#boxSearch button[type="submit"]').click()    	
+    })
+
+    $(document).on('click', '.fb__export button', function(e){
+    	$.post('/box/export-excel',{}, function(msg){
+			alert("Файл сохранен: "+msg);
+		});
+		return
+    })	
+
+   
 })
 

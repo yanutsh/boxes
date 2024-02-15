@@ -13,6 +13,11 @@ $config = [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
     ],
+    'container' => [
+        'singletons' => [
+            'app\dispatchers\EventDispatcher' => ['app\dispatchers\BoxEventDispatcher'],
+        ],
+    ],
     'components' => [
         'request' => [
             'baseUrl' => '',

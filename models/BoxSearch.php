@@ -11,6 +11,9 @@ use app\models\Box;
  */
 class BoxSearch extends Box
 {
+    public $title;
+    public $sku;
+    public $day_from, $day_to;
     /**
      * {@inheritdoc}
      */
@@ -20,6 +23,8 @@ class BoxSearch extends Box
             [['id', 'status_id'], 'integer'],
             [['weight', 'width', 'length', 'height'], 'number'],
             [['reference', 'created_at'], 'safe'],
+            [['title', 'sku'], 'string', 'max'=>255],
+            [['day_from', 'day_to'], 'date', 'format'=>'php:d.m.Y'],
         ];
     }
 
@@ -42,8 +47,8 @@ class BoxSearch extends Box
     public function search($params)
     {
         // вместе с продуктами в коробке
-        $query = Box::find()->with('productToBoxes');
-
+        $query = Box::find()->joinWith('productToBoxes');
+              
         // add conditions that should always apply here
 
         $dataProvider = new ActiveDataProvider([
@@ -52,11 +57,12 @@ class BoxSearch extends Box
 
         $this->load($params);
 
-        if (!$this->validate()) {
-            // uncomment the following line if you do not want to return any records when validation fails
-            // $query->where('0=1');
-            return $dataProvider;
-        }
+        // if (!$this->validate()) {
+        //     // uncomment the following line if you do not want to return any records when validation fails
+        //     $query->where('0=1');
+        //     //debug('Валидация не прошла');
+        //     return $dataProvider;
+        // }
 
         // grid filtering conditions
         $query->andFilterWhere([
@@ -67,9 +73,14 @@ class BoxSearch extends Box
             'height' => $this->height,
             'status_id' => $this->status_id,
             'created_at' => $this->created_at,
+            'product_to_box.sku' => $this->sku,
         ]);
 
+        $day_to_db = Date('Y-m-d', strtotime($this->day_to)+24*60*60);
         $query->andFilterWhere(['like', 'reference', $this->reference]);
+        $query->andFilterWhere(['like', 'title', $this->title]);
+        $query->andFilterWhere(['between', 'created_at', $this->day_from, $day_to_db]);
+      
 
         return $dataProvider;
     }

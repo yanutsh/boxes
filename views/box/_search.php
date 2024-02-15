@@ -1,6 +1,7 @@
 <?php
 
 use yii\helpers\Html;
+use yii\helpers\ArrayHelper ;
 use yii\widgets\ActiveForm;
 
 /** @var yii\web\View $this */
@@ -11,6 +12,7 @@ use yii\widgets\ActiveForm;
 <div class="box-search container">
 
     <?php $form = ActiveForm::begin([
+        'id'=> 'boxSearch',
         'action' => ['index'],
         'method' => 'get',
         'options' => [
@@ -22,23 +24,32 @@ use yii\widgets\ActiveForm;
         <div class="col-md-2">
             <?= $form->field($model, 'id') ?>
         </div>
+        <div class="col-md-3">
+            <?= $form->field($model, 'reference') ?>
+        </div>
+       
         <div class="col-md-2">
-            <?= $form->field($model, 'weight') ?>
+                <?php
+                    $items = ArrayHelper::map($status,'id','name');
+                    $params = [
+                        'prompt' => 'All values'               
+                    ];    
+                    echo $form->field($model, 'status_id')->dropDownList($items, $params);
+                ?>
+            </div>
+        <div class="col-md-2">
+            <?= $form->field($model, 'sku') ?>
+        </div>
+        <div class="col-md-3">
+            <?= $form->field($model, 'title') ?>
         </div>
         <div class="col-md-2">
-            <?= $form->field($model, 'width') ?>
+            <?= $form->field($model, 'day_from')->textInput(['type'=>'date']) ?>
         </div>
         <div class="col-md-2">
-            <?= $form->field($model, 'length') ?>
-        </div>
-        <div class="col-md-2">
-            <?= $form->field($model, 'height') ?>
-        </div>
-        <?php // echo $form->field($model, 'reference') ?>
-
-        <?php // echo $form->field($model, 'status_id') ?>
-
-        <?php // echo $form->field($model, 'created_at') ?>
+            <?= $form->field($model, 'day_to')->textInput(['type'=>'date']) ?>
+        </div>        
+       
 </div>
 
     <div class="form-group">

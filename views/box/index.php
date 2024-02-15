@@ -24,10 +24,14 @@ $this->params['breadcrumbs'][] = $this->title;
         <?= Html::a('Create Box', ['create'], ['class' => 'btn btn-success']) ?>
     </p>
 
-    <?php Pjax::begin(); ?>
-    <?php echo $this->render('_search', ['model' => $searchModel]); ?>
+    <?php Pjax::begin([
+        'id'=> 'boxes',
+    ]); ?>
+    <?= $this->render('_search', ['model' => $searchModel,
+                        'status'=> $status]); ?>
 
     <?= GridView::widget([
+        'id' => 'boxList',
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
         'columns' => [
@@ -78,12 +82,14 @@ $this->params['breadcrumbs'][] = $this->title;
     ?>
     <div class="col-md-12 fb"> 
         <div class="fb__text" >
-            <a href="#" id="changeStatus">Изменить статус на:</a>
+            <a href="" id="changeStatus">Изменить статус на:</a>
         </div>
         <div class="fb__status">    
             <?= Html::activeDropDownList($box, 'status', $items, ['class'=>'form-select', 'prompt'=>'Выберите']) ?>
-        </div>    
-       
+        </div>
+        <div class="fb__export">
+            <button type="button" class="btn btn-warning">Report</button>
+        </div>       
 
     </div>
 

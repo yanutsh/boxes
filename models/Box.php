@@ -3,6 +3,7 @@
 namespace app\models;
 
 use Yii;
+use app\traits\EventTrait;
 
 /**
  * This is the model class for table "box".
@@ -21,7 +22,11 @@ use Yii;
  * @property Status $status
  */
 class Box extends \yii\db\ActiveRecord
-{
+{   
+    use EventTrait; 
+    //public $events = [];
+       
+
     /**
      * {@inheritdoc}
      */
@@ -91,4 +96,5 @@ class Box extends \yii\db\ActiveRecord
     {
         return $this->hasOne(Status::class, ['id' => 'status_id']);
     }
+
 }

@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use Yii;
 use app\models\Box;
 use app\models\Status;
 use app\models\ProductToBox;
@@ -9,8 +10,7 @@ use app\models\BoxSearch;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
-//use yii\helpers\ArrayHelper ;
-
+use app\dispatchers\BoxEventDispatcher;
 /**
  * BoxController implements the CRUD actions for Box model.
  */
@@ -41,9 +41,24 @@ class BoxController extends Controller
      */
     public function actionIndex()
     {
+        // создание событий ===============================
+        // $event_disp = new BoxEventDispatcher(['one', 'two']);
+        
+        // $box=new Box();
+        // $box->recordEvent('showBoxesList-1');
+        // $box->recordEvent('showBoxesList-2');
+        
+        // $box->events = $box->releaseEvents();
+        // // обработка событий диспетчером
+        // $event_disp->dispatch($box->events);
+        // //=========================================================
+        
         $searchModel = new BoxSearch();
+
         $dataProvider = $searchModel->search($this->request->queryParams);
-        $status = Status::find()->indexBy('id')->all();
+
+        //debug($this->request->queryParams);
+        $status = Status::find()->indexBy('id')->asArray()->all();
 
        
         // проверяем равенство shipped_qty=received_qty
@@ -114,6 +129,11 @@ class BoxController extends Controller
             $model->loadDefaultValues();
         }
 
+
+        // обработк событий диспетчером
+        // $ded = new DummyEventDispatcher(['one', 'two']);
+        // $ded->dispatch(['three', 'fore']);
+
         return $this->render('create', [
             'model' => $model,
         ]);
@@ -173,16 +193,68 @@ class BoxController extends Controller
         throw new NotFoundHttpException('The requested page does not exist.');
     }
 
-    // проверяем равенство shipped_qty=received_qty
+    // изменение статуса коробки
     public function actionChangeStatus($box_id=null, $status_id=null) {
 
         if(Yii::$app->request->isAjax) {
             $box = Box::findOne($box_id);
-            $box->status = $status_id;
-            debug($box);
-            $box->save;
+            $box->status_id = $status_id;
+            //debug($box);
+            if($box->save())
+                return 'ok change status';
+            else return false;    
            
         }
 
-    }    
+    } 
+
+
+    // экспорт списка коробок в Excel
+    public function actionExportExcel() {
+        // получаем данные коробок
+        $boxes = Box::find()->with('status')->asArray()->all();
+        //debug($boxes,0);
+
+        /** Create a new Spreadsheet Object **/
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();  
+        //debug( $spreadsheet);
+
+        // Create a new worksheet called "My Data"
+        $worksheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'export');
+
+        // Attach the "My Data" worksheet as the first worksheet in the Spreadsheet object
+        //$spreadsheet->addSheet($worksheet, 0);
+        $spreadsheet->addSheet($worksheet, 0);
+        $spreadsheet->getSheet(0);
+        $spreadsheet->removeSheetByIndex(1);
+        $spreadsheet->getActiveSheet()->getColumnDimension('B')->setWidth(15);
+        $spreadsheet->getActiveSheet()->getColumnDimension('D')->setWidth(20);
+
+
+        // Set up some basic data
+        $worksheet
+            ->setCellValue('A1', 'ID')
+            ->setCellValue('B1', 'Date')
+            ->setCellValue('C1', 'Weight, g')
+            ->setCellValue('D1', 'Status');
+
+            $i=2;
+            foreach($boxes as $box) {
+                $worksheet
+                    ->setCellValue('A'.$i, $box['id'])           
+                    ->setCellValue('B'.$i, date('d.m.Y', strtotime($box['created_at'])))
+                    ->setCellValue('C'.$i, $box['weight'])  
+                    ->setCellValue('D'.$i, $box['status']['name']); 
+                $i++;   
+            }
+        
+        $time = Date('YmdHis');
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, "Xlsx");
+
+        $writer->save(Yii::getAlias('@webroot')."/export/boxes".$time.".xlsx");
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+        return "/web/export/boxes".$time.".xlsx";
+        
+    }     
 }
