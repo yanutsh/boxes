@@ -28,7 +28,8 @@ $this->params['breadcrumbs'][] = $this->title;
         <span>Этот блок можно не включать или сделать нередактируемым</span>
     </p>
 
-    <?= $this->render('_form', compact('model','status')) ?>
+    <?php $action = 'view' ?>
+    <?= $this->render('_form', compact('model','status', 'action')) ?>
    
     <h3>Список продуктов в коробке <?= $model['id'] ?></h3>
     <div class="productInBox">

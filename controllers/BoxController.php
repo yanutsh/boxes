@@ -7,6 +7,7 @@ use app\models\Box;
 use app\models\Status;
 use app\models\ProductToBox;
 use app\models\BoxSearch;
+use app\models\Events\BoxVolumeChanged;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
@@ -27,7 +28,7 @@ class BoxController extends Controller
                 'verbs' => [
                     'class' => VerbFilter::className(),
                     'actions' => [
-                        'delete' => ['POST'],
+                        'delete' => ['POST', 'GET'],
                     ],
                 ],
             ]
@@ -41,56 +42,22 @@ class BoxController extends Controller
      */
     public function actionIndex()
     {
-        // создание событий ===============================
-        // $event_disp = new BoxEventDispatcher(['one', 'two']);
-        
-        // $box=new Box();
-        // $box->recordEvent('showBoxesList-1');
-        // $box->recordEvent('showBoxesList-2');
-        
-        // $box->events = $box->releaseEvents();
-        // // обработка событий диспетчером
-        // $event_disp->dispatch($box->events);
-        // //=========================================================
-        
-        $searchModel = new BoxSearch();
-
-        $dataProvider = $searchModel->search($this->request->queryParams);
-
-        //debug($this->request->queryParams);
-        $status = Status::find()->indexBy('id')->asArray()->all();
-
-       
-        // проверяем равенство shipped_qty=received_qty
-        $boxes = $dataProvider->query->indexBy('id')->asArray()->all();
-        
-        $isEQ = $this->checkEQ($boxes);
-        
-        return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
-            'status' => $status,
-            'isEQ' => $isEQ,
-        ]);
+        return $this->showBoxIndex();  
     }
 
     // проверяем равенство shipped_qty=received_qty
     public function checkEQ($boxes) {
-        //debug($boxes,0);
         $isEQ = array();
         foreach($boxes as $key=>$box){
             $isEQ[$key] = true;
             foreach($box['productToBoxes'] as $prod_to_box) {
-                //echo('shipped_qty='.$prod_to_box['shipped_qty'].' && received_qty='.$prod_to_box['received_qty'].'<br>');
                 if($prod_to_box['shipped_qty'] <> $prod_to_box['received_qty']) {
                      $isEQ[$key] = false;
                      break;
                 }
             }           
         }
-        //debug($isEQ);
-        return $isEQ;
-       
+        return $isEQ;       
     }
 
     /**
@@ -106,7 +73,7 @@ class BoxController extends Controller
             ->where(['box_id'=>$id])
             ->asArray()->all();
         // список статусов
-        $status = Status::find()->asArray()->orderBy('name')->all();
+        $status = Status::find()->orderBy('name')->asArray()->all();
 
         $model = $this->findModel($id);  
         return $this->render('view', compact('model', 'product_to_box', 'status'));
@@ -120,22 +87,28 @@ class BoxController extends Controller
     public function actionCreate()
     {
         $model = new Box();
-
+        // список статусов
+                
         if ($this->request->isPost) {
             if ($model->load($this->request->post()) && $model->save()) {
+                
+                $model->recordEvent(new BoxVolumeChanged($model->id));
+                // можно просто посчитать объем коробки и без события перед сохранением
+                // обработка событий диспетчером
+                $model->events = $model->releaseEvents();
+                $event_disp = new BoxEventDispatcher();
+                $event_disp->dispatch($model->events);
+
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         } else {
             $model->loadDefaultValues();
         }
 
-
-        // обработк событий диспетчером
-        // $ded = new DummyEventDispatcher(['one', 'two']);
-        // $ded->dispatch(['three', 'fore']);
-
+        $status = Status::find()->orderBy('name')->asArray()->all();
         return $this->render('create', [
             'model' => $model,
+            'status' => $status,
         ]);
     }
 
@@ -146,20 +119,29 @@ class BoxController extends Controller
      * @return string|\yii\web\Response
      * @throws NotFoundHttpException if the model cannot be found
      */
-    public function actionUpdate($id)
+    public function actionUpdate($id = null)
     {
-        $model = $this->findModel($id);
-
         // список статусов
         $status = Status::find()->asArray()->orderBy('name')->all();
+        $model = $this->findModel($id);
 
         if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
-        }
 
+            // фиксируем событие
+            $model->recordEvent(new BoxVolumeChanged($id));
+            // можно просто посчитать объем коробки и без события перед сохранением
+            // обработка событий диспетчером
+            $model->events = $model->releaseEvents();
+            $event_disp = new BoxEventDispatcher();
+            $event_disp->dispatch($model->events);
+
+            return $this->redirect(['view', 'id' => $model->id]);          
+        }
+       
         return $this->render('update', [
             'model' => $model,
             'status'=> $status,
+            //'action' => 'update',
         ]);
     }
 
@@ -173,8 +155,37 @@ class BoxController extends Controller
     public function actionDelete($id)
     {
         $this->findModel($id)->delete();
+        
+        return $this->showBoxIndex();      
+    }
 
-        return $this->redirect(['index']);
+    protected function showBoxIndex() {
+        $searchModel = new BoxSearch();
+        $dataProvider = $searchModel->search($this->request->queryParams);
+
+        $status = Status::find()->indexBy('id')->asArray()->all();
+       
+        // проверяем равенство shipped_qty=received_qty
+        $boxes = $dataProvider->query->indexBy('id')->asArray()->all();
+        
+        $isEQ = $this->checkEQ($boxes);
+
+        if(Yii::$app->request->isAjax) {
+            return $this->renderAjax('index', [
+                'searchModel' => $searchModel,
+                'dataProvider' => $dataProvider,
+                'status' => $status,
+                'isEQ' => $isEQ,
+            ]);
+        }
+            
+        //debug('render index');    
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'status' => $status,
+            'isEQ' => $isEQ,
+        ]);   
     }
 
     /**
@@ -205,9 +216,7 @@ class BoxController extends Controller
             else return false;    
            
         }
-
     } 
-
 
     // экспорт списка коробок в Excel
     public function actionExportExcel() {
@@ -254,7 +263,6 @@ class BoxController extends Controller
         $writer->save(Yii::getAlias('@webroot')."/export/boxes".$time.".xlsx");
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
-        return "/web/export/boxes".$time.".xlsx";
-        
+        return "/web/export/boxes".$time.".xlsx";        
     }     
 }

@@ -4,6 +4,8 @@ namespace app\models;
 
 use Yii;
 use app\traits\EventTrait;
+use app\dispatchers\BoxEventDispatcher;
+
 
 /**
  * This is the model class for table "box".
@@ -24,8 +26,6 @@ use app\traits\EventTrait;
 class Box extends \yii\db\ActiveRecord
 {   
     use EventTrait; 
-    //public $events = [];
-       
 
     /**
      * {@inheritdoc}
@@ -42,9 +42,9 @@ class Box extends \yii\db\ActiveRecord
     {
         return [
             [['weight', 'width', 'length', 'height', 'reference'], 'required'],
-            [['weight', 'width', 'length', 'height'], 'number', 'min'=>'0'],
+            [['weight', 'width', 'length', 'height', 'volume', 'total_summ'], 'number', 'min'=>'0'],
             [['status_id'], 'integer'],
-            [['created_at'], 'safe'],
+            [['created_at', 'iseq'], 'safe'],
             [['reference'], 'string', 'max' => 255],
             [['status_id'], 'exist', 'skipOnError' => true, 'targetClass' => Status::class, 'targetAttribute' => ['status_id' => 'id']],
         ];
@@ -57,24 +57,15 @@ class Box extends \yii\db\ActiveRecord
     {
         return [
             'id' => 'ID',
-            'weight' => 'Weight',
-            'width' => 'Width',
-            'length' => 'Length',
-            'height' => 'Height',
+            'weight' => 'Weight, kg.',
+            'width' => 'Width, cm.',
+            'length' => 'Length, cm.',
+            'height' => 'Height, cm.',
+            'volume' => 'Volume, m3.',
             'reference' => 'Reference',
             'status_id' => 'Status ID',
             'created_at' => 'Created At',
         ];
-    }
-
-    /**
-     * Gets query for [[Prods]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getProds()
-    {
-        return $this->hasMany(Product::class, ['id' => 'prod_id'])->viaTable('product_to_box', ['box_id' => 'id']);
     }
 
     /**
@@ -95,6 +86,30 @@ class Box extends \yii\db\ActiveRecord
     public function getStatus()
     {
         return $this->hasOne(Status::class, ['id' => 'status_id']);
+    }
+
+    // расчет объема коробки
+    public static function updateBoxVolume($box_id) {
+        $box = Box::findOne($box_id);
+        $volume = ($box->width * $box->length * $box->height)/1000000;
+        $box->volume = $volume;
+        return $box->save();        
+    }
+
+    // расчет суммы товаров в коробке и проверка совпадений количеств
+    public static function updateBoxPrice($box_id) {
+        $box = Box::find()->where(['id'=>$box_id])->with('productToBoxes')->one();
+        //debug($box);
+        $summa = 0;
+        $isEQ = true;
+        foreach($box['productToBoxes'] as $product) {
+            $summa += $product['price'];
+            if($product['shipped_qty'] <> $product['received_qty']) $isEQ = $isEQ && false;
+        }
+             
+        $box->total_summ = $summa;
+        $box->iseq =  $isEQ;
+        return $box->save();        
     }
 
 }

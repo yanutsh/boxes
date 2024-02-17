@@ -5,9 +5,12 @@ namespace app\controllers;
 use Yii;
 use app\models\ProductToBox;
 use app\models\ProductToBoxSearch;
+use app\models\Box;
+use app\models\Events\BoxProductChanged;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use app\dispatchers\BoxEventDispatcher;
 
 /**
  * ProductToBoxController implements the CRUD actions for ProductToBox model.
@@ -68,8 +71,19 @@ class ProductToBoxController extends Controller
 
         if ($this->request->isPost) {
             if ($model->load($this->request->post()) && $model->save()) {
-                // return $this->redirect(['update', 'sku' => $model->sku]);
-                return $this->redirect(['box/view', 'id' => $model->box_id]); // возвращаемся в коробку            
+                
+            // фиксируем событие
+            $box = Box::findOne($model['box_id']);
+            $box->recordEvent(new BoxProductChanged($model['box_id'], $model['sku'])); // зафиксировали событие
+            // debug(new BoxProductChanged($model['box_id'], $model['sku']));
+
+            // обрабатываем событие
+            $box->events = $box->releaseEvents();
+            //debug($box->events);
+            $event_disp = new BoxEventDispatcher();
+            $event_disp->dispatch($box->events);
+                
+            return $this->redirect(['box/view', 'id' => $model->box_id]); // возвращаемся в коробку            
             }
         } else {
             $model->loadDefaultValues();
@@ -93,7 +107,18 @@ class ProductToBoxController extends Controller
         $model = $this->findModel($sku);
 
         if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-          
+            
+            // фиксируем событие
+            $box = Box::findOne($model['box_id']);
+            $box->recordEvent(new BoxProductChanged($model['box_id'], $model['sku'])); // зафиксировали событие
+            // debug(new BoxProductChanged($model['box_id'], $model['sku']));
+
+            // обрабатываем событие
+            $box->events = $box->releaseEvents();
+            //debug($box->events);
+            $event_disp = new BoxEventDispatcher();
+            $event_disp->dispatch($box->events);
+
             return $this->redirect('/box/view?id='.$model['box_id']);
         }
         return $this->render('update', [

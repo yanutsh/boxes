@@ -5,9 +5,9 @@ use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\grid\ActionColumn;
 use yii\grid\GridView;
-
+use yii\widgets\Pjax;
 /** @var yii\web\View $this */
-/** @var app\models\StatusrSearch $searchModel */
+/** @var app\models\StatusSearch $searchModel */
 /** @var yii\data\ActiveDataProvider $dataProvider */
 
 $this->title = 'Statuses';
@@ -21,9 +21,14 @@ $this->params['breadcrumbs'][] = $this->title;
         <?= Html::a('Create Status', ['create'], ['class' => 'btn btn-success']) ?>
     </p>
 
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
+    <?php Pjax::begin([
+        'id'=> 'statusList',
+        //'timeout' => 1000000,
+        'enablePushState' => false,
+    ]); ?>
 
     <?= GridView::widget([
+        'id' => 'statusGrid',
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
         'columns' => [
@@ -33,12 +38,22 @@ $this->params['breadcrumbs'][] = $this->title;
             'name',
             [
                 'class' => ActionColumn::className(),
-                'urlCreator' => function ($action, Status $model, $key, $index, $column) {
-                    return Url::toRoute([$action, 'id' => $model->id]);
-                 }
+                
+                'buttons' => [
+                    'delete' => function ($url, $model, $key) {
+                            return Html::a('<img class="gridTrash" src="/web/icons/trash.svg" alt="">', $url, [
+                                'title' => Yii::t('yii', 'Delete'),
+                                'data-pjax' => 1,
+                            ]);
+                        },
+                    ],
             ],
         ],
     ]); ?>
 
+    <?php Pjax::end(); ?>
 
 </div>
+
+<?php
+

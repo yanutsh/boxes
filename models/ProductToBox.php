@@ -3,6 +3,8 @@
 namespace app\models;
 
 use Yii;
+use app\traits\EventTrait;
+use app\dispatchers\BoxEventDispatcher;
 
 /**
  * This is the model class for table "product_to_box".
@@ -16,6 +18,8 @@ use Yii;
  */
 class ProductToBox extends \yii\db\ActiveRecord
 {
+    use EventTrait; 
+
     /**
      * {@inheritdoc}
      */
@@ -52,4 +56,6 @@ class ProductToBox extends \yii\db\ActiveRecord
             'price' => 'Price',
         ];
     }
+
+      
 }

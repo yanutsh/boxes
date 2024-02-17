@@ -8,6 +8,7 @@ trait EventTrait
     public function recordEvent($event): void
     {
         $this->events[] = $event;
+        //debug($this->events);
     }
  
     public function releaseEvents(): array

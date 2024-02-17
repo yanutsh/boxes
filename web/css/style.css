@@ -19,9 +19,24 @@
 
 .fb__text{
 	line-height: 37px;
-	m
 }
 
-#boxList-filters{
+
+#boxList-filters,
+#boxesGrid-filters {
 	display: none;
 }
+
+div.alert-success{
+	background: #4fae4f;
+    color: #fff;
+    padding: 10px;
+}
+
+.alert-dismissible .btn-close{
+	top:	-5px;
+} 
+
+img.gridTrash {
+	width: 23px;
+} 

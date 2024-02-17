@@ -15,8 +15,14 @@ use yii\widgets\ActiveForm;
 ?>
 <div class="box-form container">
     <?php 
+    //debug($action);
+    if($action == 'create') $action = Url::to(['create']);
+    if($action == 'update') $action = Url::to(['update', 'id'=>$model->id]);
+    if($action == 'view') $action = Url::to(['update', 'id'=>$model->id]);
+    
     $form = ActiveForm::begin([
-            'action'=> Url::to(['update', 'id'=>$model->id]), ]) ?>
+            'action'=> $action,
+            ]) ?>
 
         <?= $form->field($model, 'id')->hiddenInput(['value'=>$model->id, 'maxlength' => true])->label(false) ?>        
         <div class="row">    
@@ -35,29 +41,22 @@ use yii\widgets\ActiveForm;
             <div class="col-md-2">
                 <?= $form->field($model, 'reference')->textInput(['maxlength' => true]) ?>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2" style="display:">
                 <?php
+                    //debug($status);
                     $items = ArrayHelper::map($status,'id','name');
-
                     // оставляем только нужные статусы для карточки коробки
                     $controller_id = Yii::$app->controller->id;
                     $action_id = Yii::$app->controller->action->id;
-                    if($controller_id == 'box' && $action_id == 'view') {
+                    if( $action_id == 'view') {
                         $items = array_diff($items, array('At warehouse', 'Expected'));
                     }
-                  
 
-                    // $params = [
-                    //     //'prompt' => 'Выберите статус...',
-                    //     'options'=>[
-                    //          '1' => ['disabled' => false],
-                    //          '2' => ['disabled' => false],
-                    //          '3' => ['disabled' => false],
-                    //          '4' => ['disabled' => false],
-                    //     ],
-                    // ];
-                    
-                    echo $form->field($model, 'status_id')->dropDownList($items, ['class'=>"form-select" ]);
+                    if($action_id == 'create'){
+                         $items = [];
+                        echo $form->field($model, 'status_id')->dropDownList($items, ['class'=>"form-select", 'disabled'=> true]);
+                    } else     
+                        echo $form->field($model, 'status_id')->dropDownList($items, ['class'=>"form-select"]);
                 ?>
             </div>
                 

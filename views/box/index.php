@@ -24,16 +24,21 @@ $this->params['breadcrumbs'][] = $this->title;
         <?= Html::a('Create Box', ['create'], ['class' => 'btn btn-success']) ?>
     </p>
 
-    <?php Pjax::begin([
-        'id'=> 'boxes',
-    ]); ?>
+    
     <?= $this->render('_search', ['model' => $searchModel,
                         'status'=> $status]); ?>
 
+    <?php Pjax::begin([
+        'id'=> 'boxesPjax',
+        //'timeout' => 1000000,
+        'enablePushState' => false,
+    ]); ?> 
+
     <?= GridView::widget([
-        'id' => 'boxList',
+        'id' => 'boxesGrid',
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
+        'summary' => "Показано коробок - {count} шт.", 
         'columns' => [
             //['class' => 'yii\grid\SerialColumn'],
             ['class' => 'yii\grid\CheckboxColumn'],
@@ -58,12 +63,20 @@ $this->params['breadcrumbs'][] = $this->title;
             ],    
             [
                 'class' => ActionColumn::className(),
-                // 'urlCreator' => function ($action, Box $model, $key, $index, $column) {
-                //     return Url::toRoute([$action, 'id' => $model->id]);
-                //  }
-            ],
+                'buttons' => [
+                    'delete' => function ($url, $model, $key) {
+                        return Html::a('<img class="gridTrash" src="/web/icons/trash.svg" alt="">', $url, [
+                            'title' => Yii::t('yii', 'Delete'),
+                            'data-pjax' => 1,
+                        ]);
+                    },
+                ],
+                
+            ],           
         ],
     ]); ?>
+
+    <?php Pjax::end(); ?>
     
     <?php
         $items = ArrayHelper::map($status,'id','name'); 
@@ -75,14 +88,11 @@ $this->params['breadcrumbs'][] = $this->title;
             $items = array_diff($items, array('Prepared', 'Shipped'));
         }
 
-        //debug($items);
-      
-
         $box = new Box();
     ?>
     <div class="col-md-12 fb"> 
         <div class="fb__text" >
-            <a href="" id="changeStatus">Изменить статус на:</a>
+            <a href="" id="changeStatus" data-pjax = 1>Изменить статус на:</a>
         </div>
         <div class="fb__status">    
             <?= Html::activeDropDownList($box, 'status', $items, ['class'=>'form-select', 'prompt'=>'Выберите']) ?>
@@ -90,9 +100,7 @@ $this->params['breadcrumbs'][] = $this->title;
         <div class="fb__export">
             <button type="button" class="btn btn-warning">Report</button>
         </div>       
-
     </div>
-
-    <?php Pjax::end(); ?>
-
 </div>
+
+<?php

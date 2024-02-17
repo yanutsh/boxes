@@ -47,13 +47,17 @@ class BoxSearch extends Box
     public function search($params)
     {
         // вместе с продуктами в коробке
-        $query = Box::find()->joinWith('productToBoxes');
+        $query = Box::find()->joinWith('productToBoxes')->indexBy('id');
+        //$query = Box::find()->indexBy('id');
               
         // add conditions that should always apply here
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
         ]);
+
+        // debug($query->count('weight'),0);
+        // debug($query->asArray()->all());
 
         $this->load($params);
 
@@ -81,7 +85,7 @@ class BoxSearch extends Box
         $query->andFilterWhere(['like', 'title', $this->title]);
         $query->andFilterWhere(['between', 'created_at', $this->day_from, $day_to_db]);
       
-
+    
         return $dataProvider;
     }
 }

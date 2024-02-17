@@ -2,8 +2,9 @@
 
 namespace app\controllers;
 
+use Yii;
 use app\models\Status;
-use app\models\StatusrSearch;
+use app\models\StatusSearch;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
@@ -24,7 +25,7 @@ class StatusController extends Controller
                 'verbs' => [
                     'class' => VerbFilter::className(),
                     'actions' => [
-                        'delete' => ['POST'],
+                        'delete' => ['POST', 'GET'],
                     ],
                 ],
             ]
@@ -38,7 +39,7 @@ class StatusController extends Controller
      */
     public function actionIndex()
     {
-        $searchModel = new StatusrSearch();
+        $searchModel = new StatusSearch();
         $dataProvider = $searchModel->search($this->request->queryParams);
 
         return $this->render('index', [
@@ -113,6 +114,16 @@ class StatusController extends Controller
     {
         $this->findModel($id)->delete();
 
+        if (Yii::$app->request->isAjax) {
+            $searchModel = new StatusSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams);
+
+            return $this->renderAjax('index', [
+                'searchModel' => $searchModel,
+                'dataProvider' => $dataProvider,
+            ]);
+        }
+        
         return $this->redirect(['index']);
     }
 
@@ -132,3 +143,5 @@ class StatusController extends Controller
         throw new NotFoundHttpException('The requested page does not exist.');
     }
 }
+
+
