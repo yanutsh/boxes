@@ -41,8 +41,9 @@ class Box extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['weight', 'width', 'length', 'height', 'reference'], 'required'],
+            [['reference'], 'required'],
             [['weight', 'width', 'length', 'height', 'volume', 'total_summ'], 'number', 'min'=>'0'],
+            [['weight', 'width', 'length', 'height', 'volume', 'total_summ'], 'default', 'value'=>'0'],
             [['status_id'], 'integer'],
             [['created_at', 'iseq'], 'safe'],
             [['reference'], 'string', 'max' => 255],
